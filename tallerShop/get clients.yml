@@ -1,0 +1,23 @@
+info:
+  name: get clients
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:3001/api/clients
+  body:
+    type: json
+    data: |-
+      {
+        "name": "John Doe",
+        "phone": "0981123456",
+        "email": "john@email.com"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

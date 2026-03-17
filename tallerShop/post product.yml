@@ -1,0 +1,24 @@
+info:
+  name: post product
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: http://localhost:3001/api/inventory
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Brake Pads",
+        "description": "Front brake pads",
+        "price": 50,
+        "stock": 10
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
