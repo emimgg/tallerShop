@@ -30,7 +30,7 @@ function LoginPage() {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-800">Taller Pablito</h1>
-          <p className="text-gray-500 text-sm mt-1">Sign in to your account</p>
+          <p className="text-gray-500 text-sm mt-1">Iniciar sesión</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

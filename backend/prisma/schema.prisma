@@ -38,7 +38,7 @@ model Quote {
   id         Int         @id @default(autoincrement())
   client     Client      @relation(fields: [clientId], references: [id])
   clientId   Int
-  status     String      @default("pending")
+  status     String      @default("pendiente")
   total      Float       @default(0)
   createdAt  DateTime    @default(now())
   items      QuoteItem[]
