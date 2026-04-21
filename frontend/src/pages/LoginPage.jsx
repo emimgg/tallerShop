@@ -15,7 +15,7 @@ function LoginPage() {
     setLoading(true)
     setError('')
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', form)
+      const response = await axios.post('https://tallershop-production.up.railway.app/api/auth/login', form)
       login(response.data.user, response.data.token)
       navigate('/inventory')
     } catch (err) {
