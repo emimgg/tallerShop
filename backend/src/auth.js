@@ -6,31 +6,31 @@ const prisma = require('./prisma')
 
 const JWT_SECRET = process.env.JWT_SECRET
 
-// REGISTER
+// registrar
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body
 
-    // check if user already exists
+    // check si el user existe ya
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
       return res.status(400).json({ error: 'Email already in use' })
     }
 
-    // hash the password
+    // hash
     const hashedPassword = await bcrypt.hash(password, 10)
 
     const user = await prisma.user.create({
       data: { name, email, password: hashedPassword }
     })
 
-    res.json({ message: 'User created successfully' })
+    res.json({ message: 'Usuario creado correctamente' })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
 })
 
-// LOGIN
+// login
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body
@@ -47,7 +47,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' })
     }
 
-    // generate token
+    // generar token
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' })
 
     res.json({

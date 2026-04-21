@@ -14,8 +14,6 @@ function Layout({ children }) {
   ]
   return (
     <div className="flex h-screen bg-gray-100">
-
-      {/* sidebar p desktop */}
       <aside className="hidden md:flex w-64 bg-gray-900 text-white flex-col">
         <div className="p-6 border-b border-gray-700">
           <h1 className="text-xl font-bold tracking-wide">Taller Loremipsum</h1>
@@ -47,11 +45,7 @@ function Layout({ children }) {
           </button>
         </div>
       </aside>
-
-      {/* main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-
-        {/* header mobile */}
         <header className="md:hidden bg-gray-900 text-white px-4 py-3 flex items-center justify-between">
           <h1 className="text-lg font-bold">Taller Loremipsum</h1>
           <button
@@ -61,8 +55,6 @@ function Layout({ children }) {
             {menuOpen ? '✕' : '☰'}
           </button>
         </header>
-
-        {/* dropdown p mobile*/}
         {menuOpen && (
           <div className="md:hidden bg-gray-800 text-white px-4 py-2 space-y-1 z-50">
             {links.map(link => (
@@ -88,8 +80,6 @@ function Layout({ children }) {
             </button>
           </div>
         )}
-
-        {/* page content */}
         <main className="flex-1 overflow-auto">
           <div className="p-4 md:p-8">
             {children}

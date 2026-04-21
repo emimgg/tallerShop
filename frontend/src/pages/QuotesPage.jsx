@@ -102,12 +102,10 @@ function QuotesPage() {
         </button>
       </div>
 
-      {/* form */}
       {showForm && (
         <div className="bg-white rounded-xl p-4 md:p-6 mb-6 shadow-sm border border-gray-200">
           <h2 className="text-base font-semibold text-gray-700 mb-4">Nuevo presupuesto</h2>
           <form onSubmit={handleSubmit}>
-            {/* client selector */}
             <div className="mb-4">
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                 Client
@@ -125,7 +123,6 @@ function QuotesPage() {
               </select>
             </div>
 
-            {/* items */}
             <div className="mb-4">
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
                 Products
@@ -185,7 +182,6 @@ function QuotesPage() {
               </button>
             </div>
 
-            {/* Total */}
             <div className="flex justify-end mb-4">
               <div className="bg-gray-50 rounded-lg px-6 py-3 text-right">
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Total</p>
@@ -203,7 +199,6 @@ function QuotesPage() {
         </div>
       )}
 
-      {/* tabla p desktop */}
       <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -250,7 +245,6 @@ function QuotesPage() {
         )}
       </div>
 
-      {/* cards p mobile */}
       <div className="md:hidden space-y-3">
         {quotes.map(quote => (
           <div
@@ -282,7 +276,6 @@ function QuotesPage() {
         )}
       </div>
 
-      {/* detail panel */}
       {selected && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="fixed inset-0 bg-black bg-opacity-30" onClick={() => setSelected(null)} />

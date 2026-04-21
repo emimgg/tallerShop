@@ -56,7 +56,6 @@ function InventoryPage() {
 
   return (
     <div>
-      {/* header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Inventario</h1>
@@ -70,7 +69,6 @@ function InventoryPage() {
         </button>
       </div>
 
-      {/* form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-200">
           <h2 className="text-base font-semibold text-gray-700 mb-4">Nuevo producto</h2>
@@ -114,7 +112,6 @@ function InventoryPage() {
         </form>
       )}
 
-      {/* tabla p desktop*/}
       <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -151,7 +148,6 @@ function InventoryPage() {
         )}
       </div>
 
-      {/* cards p mobile */}
       <div className="md:hidden space-y-3">
         {products.map(product => (
           <div
@@ -176,10 +172,9 @@ function InventoryPage() {
         )}
       </div>
 
-      {/* detail panel*/}
       <DetailPanel
         item={selected}
-        title="Product Details"
+        title="Detalles de producto"
         onClose={() => setSelected(null)}
         onDelete={handleDelete}
         fields={[

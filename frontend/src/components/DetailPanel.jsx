@@ -3,13 +3,10 @@ function DetailPanel({ item, fields, onClose, onDelete, title }) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      {/* backdrop */}
       <div
         className="fixed inset-0 bg-black bg-opacity-30"
         onClick={onClose}
       />
-
-      {/* panel */}
       <div className="relative w-96 bg-white h-full shadow-xl flex flex-col z-10">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
@@ -39,7 +36,7 @@ function DetailPanel({ item, fields, onClose, onDelete, title }) {
             onClick={() => onDelete(item.id)}
             className="w-full py-2 px-4 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium text-sm transition-colors"
           >
-            Delete
+            Borrar
           </button>
         </div>
       </div>

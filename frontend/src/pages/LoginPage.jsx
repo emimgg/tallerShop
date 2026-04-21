@@ -70,7 +70,7 @@ function LoginPage() {
             disabled={loading}
             className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors disabled:opacity-50"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Iniciando sesion...' : 'Iniciar sesion'}
           </button>
         </form>
       </div>

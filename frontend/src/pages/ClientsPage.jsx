@@ -96,7 +96,6 @@ function ClientsPage() {
         </form>
       )}
 
-      {/* tabla p desktop */}
       <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -127,7 +126,6 @@ function ClientsPage() {
         )}
       </div>
 
-      {/* cards p mobile */}
       <div className="md:hidden space-y-3">
         {clients.map(client => (
           <div
@@ -150,14 +148,14 @@ function ClientsPage() {
 
       <DetailPanel
         item={selected}
-        title="Client Details"
+        title="Detalles de cliente"
         onClose={() => setSelected(null)}
         onDelete={handleDelete}
         fields={[
           { key: 'name', label: 'Name' },
           { key: 'phone', label: 'Phone' },
           { key: 'email', label: 'Email' },
-          { key: 'createdAt', label: 'Client since', format: (v) => new Date(v).toLocaleDateString() },
+          { key: 'createdAt', label: 'Cliente desde', format: (v) => new Date(v).toLocaleDateString() },
         ]}
       />
     </div>
