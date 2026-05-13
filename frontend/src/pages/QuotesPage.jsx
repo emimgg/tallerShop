@@ -172,89 +172,116 @@ function QuotesPage() {
 
   function handleDownloadPDF(quote) {
     const doc = new jsPDF()
+    const pageW = 210
     const ml = 20
-    let y = 20
+    const mr = 190
+    const cx = pageW / 2
+    let y = 18
 
+    doc.setFont('times', 'bold')
     doc.setFontSize(18)
-    doc.setFont(undefined, 'bold')
-    doc.setTextColor(30)
-    doc.text('Taller Ramírez', ml, y)
-    y += 8
-    doc.setFontSize(10)
-    doc.setFont(undefined, 'normal')
-    doc.setTextColor(120)
-    doc.text(`Presupuesto #${quote.id}  ·  ${new Date(quote.createdAt).toLocaleDateString()}`, ml, y)
-    y += 12
+    doc.setTextColor(20)
+    doc.text('Taller Mecánico "RAMÍREZ"', cx, y, { align: 'center' })
+    y += 7
 
-    doc.setTextColor(30)
-    doc.setFontSize(11)
-    doc.setFont(undefined, 'bold')
-    doc.text('Cliente', ml, y)
-    y += 6
-    doc.setFont(undefined, 'normal')
-    doc.setFontSize(10)
-    doc.text(quote.client.name, ml, y)
-    if (quote.client.phone) { y += 5; doc.text(quote.client.phone, ml, y) }
-    if (quote.client.email) { y += 5; doc.text(quote.client.email, ml, y) }
-    y += 8
-
-    if (quote.vehicle) {
-      doc.setFontSize(11)
-      doc.setFont(undefined, 'bold')
-      doc.text('Vehículo', ml, y)
-      y += 6
-      doc.setFont(undefined, 'normal')
-      doc.setFontSize(10)
-      const vLabel = `${quote.vehicle.brand} ${quote.vehicle.model}${quote.vehicle.year ? ` (${quote.vehicle.year})` : ''}`
-      doc.text(vLabel, ml, y)
-      if (quote.vehicle.plate) { y += 5; doc.text(`Chapa: ${quote.vehicle.plate}`, ml, y) }
-      y += 8
+    doc.setFont('helvetica', 'normal')
+    const headerLines = [
+      { text: 'de Rubén Darío Ramírez Ovelar', size: 9 },
+      { text: 'TÉCNICO ESPECIALIZADO EN JAPÓN', size: 8 },
+      { text: 'MANTENIMIENTO Y REPARACIÓN MECÁNICA DE VEHÍCULOS', size: 8 },
+      { text: 'Servicio Especializado en Nissan Diesel · Toyota · Mitsubishi · Mazda', size: 8 },
+      { text: 'Isuzu · Hino · Mercedes Benz · Motores en gral.', size: 8 },
+      { text: 'Dr. Sosa 118 c/ Av. Def. del Chaco - Zona Sur', size: 8 },
+      { text: 'Fernando de la Mora - Paraguay', size: 8 },
+      { text: 'Tel: (0981) 988 382', size: 9 },
+    ]
+    for (const line of headerLines) {
+      doc.setFontSize(line.size)
+      doc.setTextColor(50)
+      doc.text(line.text, cx, y, { align: 'center' })
+      y += 5
     }
 
+    y += 2
+    doc.setDrawColor(150)
+    doc.setLineWidth(0.5)
+    doc.line(ml, y, mr, y)
+    y += 8
+
+    const presTitle = quote.vehicle
+      ? `Presupuesto - ${quote.vehicle.brand} ${quote.vehicle.model}${quote.vehicle.year ? ' ' + quote.vehicle.year : ''}`
+      : `Presupuesto #${quote.id}`
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(12)
+    doc.setTextColor(20)
+    doc.text(presTitle, ml, y)
+    y += 6
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(80)
+    doc.text(new Date(quote.createdAt).toLocaleDateString(), ml, y)
+    y += 10
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(20)
+    doc.text('Cliente', ml, y)
+    y += 5
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.text(quote.client.name, ml, y)
+    y += 5
+    if (quote.client.phone) { doc.text(quote.client.phone, ml, y); y += 5 }
+    if (quote.client.email) { doc.text(quote.client.email, ml, y); y += 5 }
+    y += 6
+
+    const PDF_LABELS = { servicio: 'SERVICIOS', parte: 'PARTES / REPUESTOS', otro: 'OTROS' }
     const grouped = SECTIONS.map(s => ({
       ...s,
+      pdfLabel: PDF_LABELS[s.key],
       items: quote.items.filter(i => i.product.category === s.key)
     })).filter(s => s.items.length > 0)
 
     for (const section of grouped) {
+      if (y > 260) { doc.addPage(); y = 20 }
+      doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
-      doc.setFont(undefined, 'bold')
-      doc.setTextColor(100)
-      doc.text(section.label.toUpperCase(), ml, y)
+      doc.setTextColor(60)
+      doc.text(section.pdfLabel, ml, y)
       y += 4
-      doc.setDrawColor(200)
-      doc.line(ml, y, 190, y)
-      y += 6
+      doc.setDrawColor(180)
+      doc.setLineWidth(0.3)
+      doc.line(ml, y, mr, y)
+      y += 5
 
-      doc.setFont(undefined, 'normal')
-      doc.setTextColor(30)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(20)
       for (const item of section.items) {
-        doc.setFontSize(10)
-        const name = item.product.name.length > 44 ? item.product.name.slice(0, 44) + '…' : item.product.name
-        doc.text(name, ml, y)
-        doc.text(`x${item.quantity}`, 128, y)
-        doc.text(`Gs. ${Number(item.unitPrice).toLocaleString()}`, 143, y)
-        doc.text(`Gs. ${(item.unitPrice * item.quantity).toLocaleString()}`, 170, y)
-        if (item.description) {
-          y += 5
-          doc.setFontSize(8)
-          doc.setTextColor(100)
-          const desc = item.description.length > 60 ? item.description.slice(0, 60) + '…' : item.description
-          doc.text(desc, ml + 2, y)
-          doc.setTextColor(30)
-        }
-        y += 7
+        if (y > 270) { doc.addPage(); y = 20 }
+        const leftPart = item.description
+          ? `${item.product.name} - ${item.description}`
+          : item.product.name
+        const displayLeft = leftPart.length > 52 ? leftPart.slice(0, 52) + '…' : leftPart
+        doc.text(displayLeft, ml, y)
+        doc.text(`${item.quantity} x Gs. ${Number(item.unitPrice).toLocaleString()}`, 120, y)
+        doc.text(`Gs. ${(item.unitPrice * item.quantity).toLocaleString()}`, mr, y, { align: 'right' })
+        y += 6
       }
-      y += 4
+      y += 5
     }
 
-    doc.setDrawColor(180)
-    doc.line(ml, y, 190, y)
-    y += 8
+    if (y > 265) { doc.addPage(); y = 20 }
+    doc.setDrawColor(150)
+    doc.setLineWidth(0.5)
+    doc.line(ml, y, mr, y)
+    y += 7
+    doc.setFont('helvetica', 'bold')
     doc.setFontSize(12)
-    doc.setFont(undefined, 'bold')
-    doc.text('Total:', 143, y)
-    doc.text(`Gs. ${Number(quote.total).toLocaleString()}`, 170, y)
+    doc.setTextColor(20)
+    doc.text('TOTAL', ml, y)
+    doc.text(`Gs. ${Number(quote.total).toLocaleString()}`, mr, y, { align: 'right' })
 
     doc.save(`presupuesto-${quote.id}.pdf`)
   }
