@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { jsPDF } from 'jspdf'
-import { getQuotes, getClients, getProducts, createQuote, createClient, deleteQuote, addVehicle } from '../services/api'
+import { getQuotes, getClients, getProducts, createQuote, createClient, updateQuote, deleteQuote, addVehicle } from '../services/api'
 import { useToast } from '../context/ToastContext'
 
 const SECTIONS = [
@@ -8,6 +8,13 @@ const SECTIONS = [
   { key: 'parte', label: 'Partes/Repuestos' },
   { key: 'otro', label: 'Otros' },
 ]
+
+function statusBadge(status) {
+  if (status === 'pendiente') return 'bg-yellow-100 text-yellow-700'
+  if (status === 'aprobado') return 'bg-orange-100 text-orange-700'
+  if (status === 'finiquitado') return 'bg-green-100 text-green-700'
+  return 'bg-gray-100 text-gray-600'
+}
 
 let _rid = 0
 function makeRow() {
@@ -154,6 +161,17 @@ function QuotesPage() {
       setShowForm(false)
       fetchAll()
       addToast('Presupuesto creado correctamente')
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  async function handleStatusChange(id, status) {
+    try {
+      await updateQuote(id, { status })
+      setSelected(prev => ({ ...prev, status }))
+      setQuotes(prev => prev.map(q => q.id === id ? { ...q, status } : q))
+      addToast(`Estado actualizado: ${status}`)
     } catch (error) {
       console.error(error)
     }
@@ -475,7 +493,7 @@ function QuotesPage() {
                               onChange={e => handleSearchChange(section.key, row.id, e.target.value)}
                               onFocus={() => setActiveDropdown(dropKey)}
                               onBlur={() => setTimeout(() => setActiveDropdown(null), 150)}
-                              placeholder={`Buscar…`}
+                              placeholder="Buscar…"
                               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             {activeDropdown === dropKey && filtered.length > 0 && (
@@ -567,6 +585,7 @@ function QuotesPage() {
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha</th>
+              <th className="px-3 py-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -584,15 +603,20 @@ function QuotesPage() {
                 <td className="px-6 py-4 text-gray-500">{quote.items.length} items</td>
                 <td className="px-6 py-4 font-semibold text-gray-800">Gs. {Number(quote.total).toLocaleString()}</td>
                 <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    quote.status === 'pendiente' ? 'bg-yellow-100 text-yellow-600' :
-                    quote.status === 'finiquitado' ? 'bg-green-100 text-green-600' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(quote.status)}`}>
                     {quote.status}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-gray-500">{new Date(quote.createdAt).toLocaleDateString()}</td>
+                <td className="px-3 py-4">
+                  <button
+                    onClick={e => { e.stopPropagation(); handleDownloadPDF(quote) }}
+                    title="Descargar PDF"
+                    className="text-gray-400 hover:text-blue-600 transition-colors text-base"
+                  >
+                    ⬇
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -610,14 +634,19 @@ function QuotesPage() {
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:border-blue-300 transition-colors"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-400 font-mono text-sm">#{quote.id}</span>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                quote.status === 'pendiente' ? 'bg-yellow-100 text-yellow-600' :
-                quote.status === 'finiquitado' ? 'bg-green-100 text-green-600' :
-                'bg-gray-100 text-gray-600'
-              }`}>
-                {quote.status}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 font-mono text-sm">#{quote.id}</span>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(quote.status)}`}>
+                  {quote.status}
+                </span>
+              </div>
+              <button
+                onClick={e => { e.stopPropagation(); handleDownloadPDF(quote) }}
+                title="Descargar PDF"
+                className="text-gray-400 hover:text-blue-600 transition-colors text-base px-2"
+              >
+                ⬇
+              </button>
             </div>
             <h3 className="font-semibold text-gray-800 mb-0.5">{quote.client.name}</h3>
             {quote.vehicle && (
@@ -635,9 +664,9 @@ function QuotesPage() {
       </div>
 
       {selected && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="fixed inset-0 bg-black bg-opacity-30" onClick={() => setSelected(null)} />
-          <div className="relative w-full md:w-[480px] bg-white h-full shadow-xl flex flex-col z-10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-40" onClick={() => setSelected(null)} />
+          <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-xl flex flex-col z-10 max-h-[90vh]">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-lg font-semibold text-gray-800">Presupuesto #{selected.id}</h2>
               <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
@@ -664,8 +693,10 @@ function QuotesPage() {
               )}
 
               <div>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Estado</p>
-                <p className="text-gray-800 font-medium mt-1">{selected.status}</p>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Estado</p>
+                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${statusBadge(selected.status)}`}>
+                  {selected.status}
+                </span>
               </div>
 
               {SECTIONS.map(section => {
@@ -705,6 +736,22 @@ function QuotesPage() {
             </div>
 
             <div className="p-6 border-t space-y-2">
+              {selected.status !== 'aprobado' && (
+                <button
+                  onClick={() => handleStatusChange(selected.id, 'aprobado')}
+                  className="w-full py-2 px-4 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 font-medium text-sm transition-colors"
+                >
+                  Marcar como Aprobado
+                </button>
+              )}
+              {selected.status !== 'finiquitado' && (
+                <button
+                  onClick={() => handleStatusChange(selected.id, 'finiquitado')}
+                  className="w-full py-2 px-4 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 font-medium text-sm transition-colors"
+                >
+                  Marcar como Finiquitado
+                </button>
+              )}
               <button
                 onClick={() => handleDownloadPDF(selected)}
                 className="w-full py-2 px-4 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-medium text-sm transition-colors"

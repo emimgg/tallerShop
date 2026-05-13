@@ -24,12 +24,12 @@ function DetailPanel({ item, fields, onClose, onDelete, title, onSave, editableF
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="fixed inset-0 bg-black bg-opacity-30"
+        className="fixed inset-0 bg-black bg-opacity-40"
         onClick={onClose}
       />
-      <div className="relative w-full md:w-96 bg-white h-full shadow-xl flex flex-col z-10">
+      <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-xl flex flex-col z-10 max-h-[90vh]">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
           <button
