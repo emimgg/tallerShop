@@ -1,11 +1,28 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function Layout({ children }) {
   const location = useLocation()
   const { logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [installPrompt, setInstallPrompt] = useState(null)
+
+  useEffect(() => {
+    function handler(e) {
+      e.preventDefault()
+      setInstallPrompt(e)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  async function handleInstall() {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') setInstallPrompt(null)
+  }
 
   const links = [
     { to: '/', label: 'Dashboard', icon: '📊' },
@@ -42,11 +59,22 @@ function Layout({ children }) {
             </Link>
           ))}
         </nav>
-        <footer className="p-4 border-t border-gray-700">
-          <p className="text-gray-400 text-xs mb-2">Taller Ramírez</p>
+        <footer className="p-4 border-t border-gray-700 space-y-2">
+          <p className="text-gray-400 text-xs">Taller Ramírez</p>
+          {installPrompt && (
+            <button
+              onClick={handleInstall}
+              className="flex items-center gap-2 text-gray-300 hover:text-white text-xs transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Instalar app
+            </button>
+          )}
           <button
             onClick={logout}
-            className="text-gray-400 hover:text-white text-xs transition-colors"
+            className="text-gray-400 hover:text-white text-xs transition-colors block"
           >
             Cerrar sesión
           </button>
@@ -79,6 +107,17 @@ function Layout({ children }) {
                 {link.label}
               </Link>
             ))}
+            {installPrompt && (
+              <button
+                onClick={handleInstall}
+                className="flex items-center gap-3 w-full px-4 py-3 text-gray-300 hover:text-white text-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Instalar app
+              </button>
+            )}
             <button
               onClick={logout}
               className="w-full text-left px-4 py-3 text-gray-400 hover:text-white text-sm"

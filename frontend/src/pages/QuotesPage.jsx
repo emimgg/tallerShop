@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { jsPDF } from 'jspdf'
-import { getQuotes, getClients, getProducts, createQuote, createClient, updateQuote, deleteQuote, addVehicle } from '../services/api'
+import { getQuotes, getClients, getProducts, createQuote, createProduct, createClient, updateQuote, deleteQuote, addVehicle } from '../services/api'
 import { useToast } from '../context/ToastContext'
 
 const SECTIONS = [
@@ -144,16 +144,29 @@ function QuotesPage() {
       resolvedVehicleId = res.data.id
     }
 
-    const items = Object.values(sectionRows).flat()
-      .filter(r => r.productId && Number(r.unitPrice) > 0)
-      .map(r => ({
-        productId: r.productId,
-        quantity: Number(r.quantity),
-        unitPrice: Number(r.unitPrice),
-        description: r.description || null,
-      }))
+    const allRows = SECTIONS.flatMap(section =>
+      sectionRows[section.key]
+        .filter(r => (r.productId || r.search.trim()) && Number(r.unitPrice) > 0)
+        .map(r => ({ ...r, category: section.key }))
+    )
 
-    if (!items.length) return
+    if (!allRows.length) return
+
+    await Promise.all(
+      allRows
+        .filter(r => !r.productId && r.search.trim())
+        .map(async r => {
+          const res = await createProduct({ name: r.search.trim(), category: r.category, price: 0, stock: 0 })
+          r.productId = res.data.id
+        })
+    )
+
+    const items = allRows.map(r => ({
+      productId: r.productId,
+      quantity: Number(r.quantity),
+      unitPrice: Number(r.unitPrice),
+      description: r.description || null,
+    }))
 
     try {
       await createQuote({ clientId: resolvedClientId, vehicleId: resolvedVehicleId, items })

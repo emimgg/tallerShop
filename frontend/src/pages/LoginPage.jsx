@@ -26,8 +26,8 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+    <div className="fixed inset-0 bg-gray-900 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-800">Taller Ramírez</h1>
           <p className="text-gray-500 text-sm mt-1">Iniciar sesión</p>
