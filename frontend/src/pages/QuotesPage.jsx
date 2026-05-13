@@ -377,8 +377,8 @@ function QuotesPage() {
                   <div className="flex items-center gap-3 pt-1">
                     <button
                       type="button"
-                      disabled={!newClientForm.name}
                       onClick={async () => {
+                        if (!newClientForm.name.trim()) return
                         const res = await createClient(newClientForm)
                         const created = res.data
                         setClients(prev => [...prev, { ...created, vehicles: [] }])
@@ -386,7 +386,7 @@ function QuotesPage() {
                         setIsNewClient(false)
                         setNewClientForm({ name: '', phone: '', email: '' })
                       }}
-                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors disabled:opacity-40"
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
                     >
                       Guardar cliente
                     </button>
