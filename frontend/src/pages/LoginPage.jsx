@@ -17,7 +17,7 @@ function LoginPage() {
     try {
       const response = await loginUser(form)
       login(response.data.user, response.data.token)
-      navigate('/servicios')
+      navigate('/')
     } catch (err) {
       setError('Usuario o contraseña incorrectos')
     } finally {

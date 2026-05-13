@@ -122,14 +122,7 @@ function QuotesPage() {
   async function handleSubmit(e) {
     e.preventDefault()
 
-    let resolvedClientId = selectedClient?.id
-
-    if (isNewClient) {
-      if (!newClientForm.name) return
-      const res = await createClient(newClientForm)
-      resolvedClientId = res.data.id
-    }
-
+    const resolvedClientId = selectedClient?.id
     if (!resolvedClientId) return
 
     let resolvedVehicleId = isNewVehicle ? null : (selectedVehicleId || null)
@@ -381,13 +374,30 @@ function QuotesPage() {
                     onChange={e => setNewClientForm({ ...newClientForm, email: e.target.value })}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   />
-                  <button
-                    type="button"
-                    onClick={() => { setIsNewClient(false); setNewClientForm({ name: '', phone: '', email: '' }) }}
-                    className="text-gray-500 hover:text-gray-700 text-xs"
-                  >
-                    ← Buscar cliente existente
-                  </button>
+                  <div className="flex items-center gap-3 pt-1">
+                    <button
+                      type="button"
+                      disabled={!newClientForm.name}
+                      onClick={async () => {
+                        const res = await createClient(newClientForm)
+                        const created = res.data
+                        setClients(prev => [...prev, { ...created, vehicles: [] }])
+                        selectClient({ ...created, vehicles: [] })
+                        setIsNewClient(false)
+                        setNewClientForm({ name: '', phone: '', email: '' })
+                      }}
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors disabled:opacity-40"
+                    >
+                      Guardar cliente
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setIsNewClient(false); setNewClientForm({ name: '', phone: '', email: '' }) }}
+                      className="text-gray-500 hover:text-gray-700 text-xs"
+                    >
+                      ← Buscar cliente existente
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="relative w-full md:w-80">
