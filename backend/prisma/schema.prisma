@@ -30,6 +30,7 @@ model Product {
   description String?
   price       Float
   stock       Int         @default(0)
+  category    String      @default("servicio")
   createdAt   DateTime    @default(now())
   quoteItems  QuoteItem[]
 }

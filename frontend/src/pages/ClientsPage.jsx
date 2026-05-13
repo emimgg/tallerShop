@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { getClients, createClient, deleteClient } from '../services/api'
+import { getClients, createClient, updateClient, deleteClient } from '../services/api'
 import DetailPanel from '../components/DetailPanel'
+import { useToast } from '../context/ToastContext'
 
 function ClientsPage() {
   const [clients, setClients] = useState([])
@@ -8,6 +9,7 @@ function ClientsPage() {
   const [showForm, setShowForm] = useState(false)
   const [selected, setSelected] = useState(null)
   const [form, setForm] = useState({ name: '', phone: '', email: '' })
+  const { addToast } = useToast()
 
   useEffect(() => { fetchClients() }, [])
 
@@ -29,13 +31,31 @@ function ClientsPage() {
       setForm({ name: '', phone: '', email: '' })
       setShowForm(false)
       fetchClients()
+      addToast('Cliente creado correctamente')
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  async function handleEdit(id, data) {
+    try {
+      await updateClient(id, {
+        name: data.name,
+        phone: data.phone,
+        email: data.email
+      })
+      const response = await getClients()
+      setClients(response.data)
+      const updated = response.data.find(c => c.id === id)
+      if (updated) setSelected(updated)
+      addToast('Cliente actualizado correctamente')
     } catch (error) {
       console.error(error)
     }
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Delete this client?')) return
+    if (!window.confirm('Borrar este cliente?')) return
     try {
       await deleteClient(id)
       setSelected(null)
@@ -58,7 +78,7 @@ function ClientsPage() {
           onClick={() => setShowForm(!showForm)}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
         >
-          {showForm ? 'Cancel' : '+ Agregar'}
+          {showForm ? 'Cancelar' : '+ Agregar'}
         </button>
       </div>
 
@@ -151,11 +171,17 @@ function ClientsPage() {
         title="Detalles de cliente"
         onClose={() => setSelected(null)}
         onDelete={handleDelete}
+        onSave={handleEdit}
         fields={[
-          { key: 'name', label: 'Name' },
-          { key: 'phone', label: 'Phone' },
+          { key: 'name', label: 'Nombre' },
+          { key: 'phone', label: 'Telefono' },
           { key: 'email', label: 'Email' },
           { key: 'createdAt', label: 'Cliente desde', format: (v) => new Date(v).toLocaleDateString() },
+        ]}
+        editableFields={[
+          { key: 'name', label: 'Nombre', type: 'text', required: true },
+          { key: 'phone', label: 'Telefono', type: 'text' },
+          { key: 'email', label: 'Email', type: 'email' },
         ]}
       />
     </div>

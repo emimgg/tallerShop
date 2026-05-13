@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'https://tallershop-production.up.railway.app/api'
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 })
 
 api.interceptors.request.use((config) => {
@@ -12,10 +12,12 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-export const getProducts = () => api.get('/inventory')
-export const createProduct = (data) => api.post('/inventory', data)
-export const updateProduct = (id, data) => api.put(`/inventory/${id}`, data)
-export const deleteProduct = (id) => api.delete(`/inventory/${id}`)
+export const loginUser = (data) => api.post('/auth/login', data)
+
+export const getProducts = () => api.get('/servicios')
+export const createProduct = (data) => api.post('/servicios', data)
+export const updateProduct = (id, data) => api.put(`/servicios/${id}`, data)
+export const deleteProduct = (id) => api.delete(`/servicios/${id}`)
 
 export const getClients = () => api.get('/clients')
 export const createClient = (data) => api.post('/clients', data)

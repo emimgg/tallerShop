@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import axios from 'axios'
+import { loginUser } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 
 function LoginPage() {
@@ -15,9 +15,9 @@ function LoginPage() {
     setLoading(true)
     setError('')
     try {
-      const response = await axios.post('https://tallershop-production.up.railway.app/api/auth/login', form)
+      const response = await loginUser(form)
       login(response.data.user, response.data.token)
-      navigate('/inventory')
+      navigate('/servicios')
     } catch (err) {
       setError('Invalid email or password')
     } finally {

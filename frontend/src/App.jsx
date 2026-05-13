@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { ToastProvider } from './context/ToastContext'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
-import InventoryPage from './pages/InventoryPage'
+import DashboardPage from './pages/DashboardPage'
+import ServiciosPage from './pages/ServiciosPage'
 import ClientsPage from './pages/ClientsPage'
 import QuotesPage from './pages/QuotesPage'
 
@@ -14,8 +16,8 @@ function ProtectedRoutes() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Navigate to="/inventory" />} />
-        <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/servicios" element={<ServiciosPage />} />
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/quotes" element={<QuotesPage />} />
       </Routes>
@@ -26,12 +28,14 @@ function ProtectedRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/*" element={<ProtectedRoutes />} />
-        </Routes>
-      </BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/*" element={<ProtectedRoutes />} />
+          </Routes>
+        </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   )
 }

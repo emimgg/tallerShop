@@ -3,27 +3,39 @@ import { getProducts, createProduct, updateProduct, deleteProduct } from '../ser
 import DetailPanel from '../components/DetailPanel'
 import { useToast } from '../context/ToastContext'
 
-function InventoryPage() {
+const TABS = [
+  { key: 'servicio', label: 'Servicios' },
+  { key: 'parte', label: 'Partes/Repuestos' },
+  { key: 'otro', label: 'Otros' },
+]
+
+function ServiciosPage() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('servicio')
   const [showForm, setShowForm] = useState(false)
   const [selected, setSelected] = useState(null)
-  const [form, setForm] = useState({
-    name: '', description: '', price: '', stock: ''
-  })
+  const [form, setForm] = useState({ name: '', description: '', price: '', stock: '', category: 'servicio' })
   const { addToast } = useToast()
 
   useEffect(() => { fetchProducts() }, [])
 
   async function fetchProducts() {
     try {
-      const response = await getProducts()
-      setProducts(response.data)
+      const res = await getProducts()
+      setProducts(res.data)
     } catch (error) {
       console.error(error)
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleTabChange(tab) {
+    setActiveTab(tab)
+    setShowForm(false)
+    setSelected(null)
+    setForm({ name: '', description: '', price: '', stock: '', category: tab })
   }
 
   async function handleSubmit(e) {
@@ -33,12 +45,13 @@ function InventoryPage() {
         name: form.name,
         description: form.description,
         price: Number(form.price),
-        stock: Number(form.stock)
+        stock: Number(form.stock),
+        category: form.category,
       })
-      setForm({ name: '', description: '', price: '', stock: '' })
+      setForm({ name: '', description: '', price: '', stock: '', category: activeTab })
       setShowForm(false)
       fetchProducts()
-      addToast('Producto creado correctamente')
+      addToast('Item creado correctamente')
     } catch (error) {
       console.error(error)
     }
@@ -50,20 +63,20 @@ function InventoryPage() {
         name: data.name,
         description: data.description,
         price: Number(data.price),
-        stock: Number(data.stock)
+        stock: Number(data.stock),
       })
-      const response = await getProducts()
-      setProducts(response.data)
-      const updated = response.data.find(p => p.id === id)
+      const res = await getProducts()
+      setProducts(res.data)
+      const updated = res.data.find(p => p.id === id)
       if (updated) setSelected(updated)
-      addToast('Producto actualizado correctamente')
+      addToast('Item actualizado correctamente')
     } catch (error) {
       console.error(error)
     }
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Borrar este producto?')) return
+    if (!window.confirm('Borrar este item?')) return
     try {
       await deleteProduct(id)
       setSelected(null)
@@ -73,45 +86,67 @@ function InventoryPage() {
     }
   }
 
+  const filtered = products.filter(p => p.category === activeTab)
+  const activeLabel = TABS.find(t => t.key === activeTab)?.label
+
   if (loading) return <p className="text-gray-500">Cargando...</p>
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Inventario</h1>
-          <p className="text-gray-500 text-sm mt-1">{products.length} productos</p>
+          <h1 className="text-2xl font-bold text-gray-800">Servicios</h1>
+          <p className="text-gray-500 text-sm mt-1">{filtered.length} items en {activeLabel}</p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setShowForm(!showForm)
+            setForm({ name: '', description: '', price: '', stock: '', category: activeTab })
+          }}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
         >
           {showForm ? 'Cancelar' : '+ Agregar'}
         </button>
       </div>
 
+      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
+        {TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => handleTabChange(tab.key)}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === tab.key
+                ? 'bg-white text-gray-800 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-200">
-          <h2 className="text-base font-semibold text-gray-700 mb-4">Nuevo producto</h2>
+          <h2 className="text-base font-semibold text-gray-700 mb-4">Nuevo item — {activeLabel}</h2>
           <div className="grid grid-cols-2 gap-4">
             <input
               placeholder="Nombre"
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={e => setForm({ ...form, name: e.target.value })}
               required
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
               placeholder="Descripcion"
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={e => setForm({ ...form, description: e.target.value })}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
               placeholder="Precio"
               type="number"
               value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              onChange={e => setForm({ ...form, price: e.target.value })}
               required
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -119,7 +154,7 @@ function InventoryPage() {
               placeholder="Stock"
               type="number"
               value={form.stock}
-              onChange={(e) => setForm({ ...form, stock: e.target.value })}
+              onChange={e => setForm({ ...form, stock: e.target.value })}
               required
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -144,7 +179,7 @@ function InventoryPage() {
             </tr>
           </thead>
           <tbody>
-            {products.map(product => (
+            {filtered.map(product => (
               <tr
                 key={product.id}
                 onClick={() => setSelected(product)}
@@ -152,25 +187,25 @@ function InventoryPage() {
               >
                 <td className="px-6 py-4 font-medium text-gray-800">{product.name}</td>
                 <td className="px-6 py-4 text-gray-500">{product.description || '—'}</td>
-                <td className="px-6 py-4 text-gray-800">${product.price}</td>
+                <td className="px-6 py-4 text-gray-800">Gs. {product.price}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     product.stock < 5 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
                   }`}>
-                    {product.stock} unidades
+                    {product.stock}
                   </span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {products.length === 0 && (
-          <div className="text-center py-12 text-gray-400">No hay productos todavía</div>
+        {filtered.length === 0 && (
+          <div className="text-center py-12 text-gray-400">No hay items en {activeLabel}</div>
         )}
       </div>
 
       <div className="md:hidden space-y-3">
-        {products.map(product => (
+        {filtered.map(product => (
           <div
             key={product.id}
             onClick={() => setSelected(product)}
@@ -181,30 +216,30 @@ function InventoryPage() {
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                 product.stock < 5 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
               }`}>
-                {product.stock} unidades
+                {product.stock}
               </span>
             </div>
-            <p className="text-gray-500 text-sm mb-2">{product.description || '—'}</p>
-            <p className="text-gray-800 font-medium">${product.price}</p>
+            <p className="text-gray-500 text-sm">{product.description || '—'}</p>
+            <p className="text-gray-800 font-medium mt-1">Gs. {product.price}</p>
           </div>
         ))}
-        {products.length === 0 && (
-          <div className="text-center py-12 text-gray-400">No hay productos todavía</div>
+        {filtered.length === 0 && (
+          <div className="text-center py-12 text-gray-400">No hay items en {activeLabel}</div>
         )}
       </div>
 
       <DetailPanel
         item={selected}
-        title="Detalles de producto"
+        title={`Detalle — ${TABS.find(t => t.key === selected?.category)?.label || ''}`}
         onClose={() => setSelected(null)}
         onDelete={handleDelete}
         onSave={handleEdit}
         fields={[
           { key: 'name', label: 'Nombre' },
           { key: 'description', label: 'Descripcion' },
-          { key: 'price', label: 'Precio', format: (v) => `Gs. ${v}` },
-          { key: 'stock', label: 'Stock', format: (v) => `${v} unidades` },
-          { key: 'createdAt', label: 'Creado', format: (v) => new Date(v).toLocaleDateString() },
+          { key: 'price', label: 'Precio', format: v => `Gs. ${v}` },
+          { key: 'stock', label: 'Stock', format: v => `${v} unidades` },
+          { key: 'createdAt', label: 'Creado', format: v => new Date(v).toLocaleDateString() },
         ]}
         editableFields={[
           { key: 'name', label: 'Nombre', type: 'text', required: true },
@@ -217,4 +252,4 @@ function InventoryPage() {
   )
 }
 
-export default InventoryPage
+export default ServiciosPage
