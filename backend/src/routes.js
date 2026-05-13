@@ -63,7 +63,7 @@ router.delete('/servicios/:id', authenticate, async (req, res) => {
 
 router.get('/clients', authenticate, async (req, res) => {
   try {
-    const clients = await prisma.client.findMany()
+    const clients = await prisma.client.findMany({ where: { userId: req.userId } })
     res.json(clients)
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -72,8 +72,8 @@ router.get('/clients', authenticate, async (req, res) => {
 
 router.get('/clients/:id', authenticate, async (req, res) => {
   try {
-    const client = await prisma.client.findUnique({
-      where: { id: Number(req.params.id) }
+    const client = await prisma.client.findFirst({
+      where: { id: Number(req.params.id), userId: req.userId }
     })
     res.json(client)
   } catch (error) {
@@ -85,7 +85,7 @@ router.post('/clients', authenticate, async (req, res) => {
   try {
     const { name, phone, email } = req.body
     const client = await prisma.client.create({
-      data: { name, phone, email }
+      data: { name, phone, email, userId: req.userId }
     })
     res.json(client)
   } catch (error) {
@@ -96,8 +96,8 @@ router.post('/clients', authenticate, async (req, res) => {
 router.put('/clients/:id', authenticate, async (req, res) => {
   try {
     const { name, phone, email } = req.body
-    const client = await prisma.client.update({
-      where: { id: Number(req.params.id) },
+    const client = await prisma.client.updateMany({
+      where: { id: Number(req.params.id), userId: req.userId },
       data: { name, phone, email }
     })
     res.json(client)
@@ -108,8 +108,8 @@ router.put('/clients/:id', authenticate, async (req, res) => {
 
 router.delete('/clients/:id', authenticate, async (req, res) => {
   try {
-    await prisma.client.delete({
-      where: { id: Number(req.params.id) }
+    await prisma.client.deleteMany({
+      where: { id: Number(req.params.id), userId: req.userId }
     })
     res.json({ message: 'Client deleted' })
   } catch (error) {
@@ -121,6 +121,7 @@ router.delete('/clients/:id', authenticate, async (req, res) => {
 router.get('/quotes', authenticate, async (req, res) => {
   try {
     const quotes = await prisma.quote.findMany({
+      where: { userId: req.userId },
       include: {
         client: true,
         items: { include: { product: true } }
@@ -134,8 +135,8 @@ router.get('/quotes', authenticate, async (req, res) => {
 
 router.get('/quotes/:id', authenticate, async (req, res) => {
   try {
-    const quote = await prisma.quote.findUnique({
-      where: { id: Number(req.params.id) },
+    const quote = await prisma.quote.findFirst({
+      where: { id: Number(req.params.id), userId: req.userId },
       include: {
         client: true,
         items: { include: { product: true } }
@@ -154,6 +155,7 @@ router.post('/quotes', authenticate, async (req, res) => {
     const quote = await prisma.quote.create({
       data: {
         clientId,
+        userId: req.userId,
         total,
         items: {
           create: items.map(item => ({
@@ -177,9 +179,12 @@ router.post('/quotes', authenticate, async (req, res) => {
 router.put('/quotes/:id', authenticate, async (req, res) => {
   try {
     const { status } = req.body
-    const quote = await prisma.quote.update({
-      where: { id: Number(req.params.id) },
+    await prisma.quote.updateMany({
+      where: { id: Number(req.params.id), userId: req.userId },
       data: { status }
+    })
+    const quote = await prisma.quote.findFirst({
+      where: { id: Number(req.params.id), userId: req.userId }
     })
     res.json(quote)
   } catch (error) {
@@ -189,8 +194,12 @@ router.put('/quotes/:id', authenticate, async (req, res) => {
 
 router.delete('/quotes/:id', authenticate, async (req, res) => {
   try {
-    await prisma.quoteItem.deleteMany({ where: { quoteId: Number(req.params.id) } })
-    await prisma.quote.delete({ where: { id: Number(req.params.id) } })
+    const quote = await prisma.quote.findFirst({
+      where: { id: Number(req.params.id), userId: req.userId }
+    })
+    if (!quote) return res.status(404).json({ error: 'Not found' })
+    await prisma.quoteItem.deleteMany({ where: { quoteId: quote.id } })
+    await prisma.quote.delete({ where: { id: quote.id } })
     res.json({ message: 'Quote deleted' })
   } catch (error) {
     res.status(500).json({ error: error.message })
