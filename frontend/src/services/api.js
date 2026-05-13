@@ -24,6 +24,8 @@ export const createClient = (data) => api.post('/clients', data)
 export const updateClient = (id, data) => api.put(`/clients/${id}`, data)
 export const deleteClient = (id) => api.delete(`/clients/${id}`)
 
+export const addVehicle = (clientId, data) => api.post(`/clients/${clientId}/vehicles`, data)
+
 export const getQuotes = () => api.get('/quotes')
 export const createQuote = (data) => api.post('/quotes', data)
 export const updateQuote = (id, data) => api.put(`/quotes/${id}`, data)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { jsPDF } from 'jspdf'
-import { getQuotes, getClients, getProducts, createQuote, deleteQuote } from '../services/api'
+import { getQuotes, getClients, getProducts, createQuote, createClient, deleteQuote, addVehicle } from '../services/api'
 import { useToast } from '../context/ToastContext'
 
 const SECTIONS = [
@@ -11,7 +11,7 @@ const SECTIONS = [
 
 let _rid = 0
 function makeRow() {
-  return { id: ++_rid, productId: null, productName: '', search: '', quantity: 1, unitPrice: '' }
+  return { id: ++_rid, productId: null, productName: '', search: '', description: '', quantity: 1, unitPrice: '' }
 }
 
 function emptyRows() {
@@ -25,10 +25,19 @@ function QuotesPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [selected, setSelected] = useState(null)
-  const [clientId, setClientId] = useState('')
   const [sectionRows, setSectionRows] = useState(emptyRows)
   const [activeDropdown, setActiveDropdown] = useState(null)
   const { addToast } = useToast()
+
+  const [clientSearch, setClientSearch] = useState('')
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false)
+  const [selectedClient, setSelectedClient] = useState(null)
+  const [isNewClient, setIsNewClient] = useState(false)
+  const [newClientForm, setNewClientForm] = useState({ name: '', phone: '', email: '' })
+
+  const [selectedVehicleId, setSelectedVehicleId] = useState(null)
+  const [isNewVehicle, setIsNewVehicle] = useState(false)
+  const [newVehicleForm, setNewVehicleForm] = useState({ brand: '', model: '', year: '', plate: '' })
 
   useEffect(() => { fetchAll() }, [])
 
@@ -47,6 +56,26 @@ function QuotesPage() {
     }
   }
 
+  function resetForm() {
+    setClientSearch('')
+    setSelectedClient(null)
+    setIsNewClient(false)
+    setNewClientForm({ name: '', phone: '', email: '' })
+    setSelectedVehicleId(null)
+    setIsNewVehicle(false)
+    setNewVehicleForm({ brand: '', model: '', year: '', plate: '' })
+    setSectionRows(emptyRows())
+  }
+
+  function selectClient(client) {
+    setSelectedClient(client)
+    setClientSearch(client.name)
+    setClientDropdownOpen(false)
+    setSelectedVehicleId(null)
+    setIsNewVehicle(false)
+    setNewVehicleForm({ brand: '', model: '', year: '', plate: '' })
+  }
+
   function updateRow(cat, id, fields) {
     setSectionRows(prev => ({
       ...prev,
@@ -59,7 +88,12 @@ function QuotesPage() {
   }
 
   function selectProduct(cat, id, product) {
-    updateRow(cat, id, { productId: product.id, productName: product.name, search: product.name })
+    updateRow(cat, id, {
+      productId: product.id,
+      productName: product.name,
+      search: product.name,
+      unitPrice: product.price || ''
+    })
     setActiveDropdown(null)
   }
 
@@ -80,14 +114,43 @@ function QuotesPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+
+    let resolvedClientId = selectedClient?.id
+
+    if (isNewClient) {
+      if (!newClientForm.name) return
+      const res = await createClient(newClientForm)
+      resolvedClientId = res.data.id
+    }
+
+    if (!resolvedClientId) return
+
+    let resolvedVehicleId = isNewVehicle ? null : (selectedVehicleId || null)
+
+    if (isNewVehicle && newVehicleForm.brand && newVehicleForm.model) {
+      const res = await addVehicle(resolvedClientId, {
+        brand: newVehicleForm.brand,
+        model: newVehicleForm.model,
+        year: newVehicleForm.year ? Number(newVehicleForm.year) : null,
+        plate: newVehicleForm.plate || null,
+      })
+      resolvedVehicleId = res.data.id
+    }
+
     const items = Object.values(sectionRows).flat()
       .filter(r => r.productId && Number(r.unitPrice) > 0)
-      .map(r => ({ productId: r.productId, quantity: Number(r.quantity), unitPrice: Number(r.unitPrice) }))
+      .map(r => ({
+        productId: r.productId,
+        quantity: Number(r.quantity),
+        unitPrice: Number(r.unitPrice),
+        description: r.description || null,
+      }))
+
     if (!items.length) return
+
     try {
-      await createQuote({ clientId: Number(clientId), items })
-      setClientId('')
-      setSectionRows(emptyRows())
+      await createQuote({ clientId: resolvedClientId, vehicleId: resolvedVehicleId, items })
+      resetForm()
       setShowForm(false)
       fetchAll()
       addToast('Presupuesto creado correctamente')
@@ -115,7 +178,7 @@ function QuotesPage() {
     doc.setFontSize(18)
     doc.setFont(undefined, 'bold')
     doc.setTextColor(30)
-    doc.text('Taller Loremipsum', ml, y)
+    doc.text('Taller Ramírez', ml, y)
     y += 8
     doc.setFontSize(10)
     doc.setFont(undefined, 'normal')
@@ -133,7 +196,20 @@ function QuotesPage() {
     doc.text(quote.client.name, ml, y)
     if (quote.client.phone) { y += 5; doc.text(quote.client.phone, ml, y) }
     if (quote.client.email) { y += 5; doc.text(quote.client.email, ml, y) }
-    y += 12
+    y += 8
+
+    if (quote.vehicle) {
+      doc.setFontSize(11)
+      doc.setFont(undefined, 'bold')
+      doc.text('Vehículo', ml, y)
+      y += 6
+      doc.setFont(undefined, 'normal')
+      doc.setFontSize(10)
+      const vLabel = `${quote.vehicle.brand} ${quote.vehicle.model}${quote.vehicle.year ? ` (${quote.vehicle.year})` : ''}`
+      doc.text(vLabel, ml, y)
+      if (quote.vehicle.plate) { y += 5; doc.text(`Chapa: ${quote.vehicle.plate}`, ml, y) }
+      y += 8
+    }
 
     const grouped = SECTIONS.map(s => ({
       ...s,
@@ -153,11 +229,20 @@ function QuotesPage() {
       doc.setFont(undefined, 'normal')
       doc.setTextColor(30)
       for (const item of section.items) {
+        doc.setFontSize(10)
         const name = item.product.name.length > 44 ? item.product.name.slice(0, 44) + '…' : item.product.name
         doc.text(name, ml, y)
         doc.text(`x${item.quantity}`, 128, y)
         doc.text(`Gs. ${Number(item.unitPrice).toLocaleString()}`, 143, y)
         doc.text(`Gs. ${(item.unitPrice * item.quantity).toLocaleString()}`, 170, y)
+        if (item.description) {
+          y += 5
+          doc.setFontSize(8)
+          doc.setTextColor(100)
+          const desc = item.description.length > 60 ? item.description.slice(0, 60) + '…' : item.description
+          doc.text(desc, ml + 2, y)
+          doc.setTextColor(30)
+        }
         y += 7
       }
       y += 4
@@ -176,6 +261,10 @@ function QuotesPage() {
 
   if (loading) return <p className="text-gray-500">Cargando...</p>
 
+  const filteredClients = clients.filter(c =>
+    !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase())
+  ).slice(0, 8)
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -184,7 +273,7 @@ function QuotesPage() {
           <p className="text-gray-500 text-sm mt-1">{quotes.length} presupuestos</p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { setShowForm(!showForm); if (showForm) resetForm() }}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
         >
           {showForm ? 'Cancelar' : '+ Nuevo'}
@@ -195,18 +284,147 @@ function QuotesPage() {
         <div className="bg-white rounded-xl p-4 md:p-6 mb-6 shadow-sm border border-gray-200">
           <h2 className="text-base font-semibold text-gray-700 mb-5">Nuevo presupuesto</h2>
           <form onSubmit={handleSubmit}>
-            <div className="mb-6">
+
+            <div className="mb-5">
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Cliente</label>
-              <select
-                value={clientId}
-                onChange={e => setClientId(e.target.value)}
-                required
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Seleccionar cliente</option>
-                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              {isNewClient ? (
+                <div className="space-y-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs font-semibold text-blue-700 mb-1">Nuevo cliente</p>
+                  <input
+                    placeholder="Nombre *"
+                    value={newClientForm.name}
+                    onChange={e => setNewClientForm({ ...newClientForm, name: e.target.value })}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                  <input
+                    placeholder="Teléfono"
+                    value={newClientForm.phone}
+                    onChange={e => setNewClientForm({ ...newClientForm, phone: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                  <input
+                    placeholder="Email"
+                    type="email"
+                    value={newClientForm.email}
+                    onChange={e => setNewClientForm({ ...newClientForm, email: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setIsNewClient(false); setNewClientForm({ name: '', phone: '', email: '' }) }}
+                    className="text-gray-500 hover:text-gray-700 text-xs"
+                  >
+                    ← Buscar cliente existente
+                  </button>
+                </div>
+              ) : (
+                <div className="relative w-full md:w-80">
+                  <input
+                    value={selectedClient ? selectedClient.name : clientSearch}
+                    onChange={e => {
+                      setClientSearch(e.target.value)
+                      setSelectedClient(null)
+                      setClientDropdownOpen(true)
+                      setSelectedVehicleId(null)
+                      setIsNewVehicle(false)
+                    }}
+                    onFocus={() => setClientDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setClientDropdownOpen(false), 150)}
+                    placeholder="Buscar cliente por nombre…"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {clientDropdownOpen && !selectedClient && (
+                    <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-48 overflow-auto">
+                      {filteredClients.map(c => (
+                        <div
+                          key={c.id}
+                          onMouseDown={() => selectClient(c)}
+                          className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer"
+                        >
+                          {c.name}
+                        </div>
+                      ))}
+                      <div
+                        onMouseDown={() => { setIsNewClient(true); setClientDropdownOpen(false); setClientSearch('') }}
+                        className="px-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-50 cursor-pointer border-t border-gray-100"
+                      >
+                        + Agregar nuevo cliente
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {selectedClient && !isNewClient && (
+              <div className="mb-5">
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Vehículo</label>
+                {isNewVehicle ? (
+                  <div className="space-y-2 p-3 bg-blue-50 rounded-lg border border-blue-200 w-full md:w-80">
+                    <p className="text-xs font-semibold text-blue-700 mb-1">Nuevo vehículo</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        placeholder="Marca *"
+                        value={newVehicleForm.brand}
+                        onChange={e => setNewVehicleForm({ ...newVehicleForm, brand: e.target.value })}
+                        required
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                      <input
+                        placeholder="Modelo *"
+                        value={newVehicleForm.model}
+                        onChange={e => setNewVehicleForm({ ...newVehicleForm, model: e.target.value })}
+                        required
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                      <input
+                        placeholder="Año"
+                        type="number"
+                        value={newVehicleForm.year}
+                        onChange={e => setNewVehicleForm({ ...newVehicleForm, year: e.target.value })}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                      <input
+                        placeholder="Chapa"
+                        value={newVehicleForm.plate}
+                        onChange={e => setNewVehicleForm({ ...newVehicleForm, plate: e.target.value })}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setIsNewVehicle(false); setNewVehicleForm({ brand: '', model: '', year: '', plate: '' }) }}
+                      className="text-gray-500 hover:text-gray-700 text-xs"
+                    >
+                      ← Cancelar
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    value={selectedVehicleId || ''}
+                    onChange={e => {
+                      const val = e.target.value
+                      if (val === 'new') {
+                        setIsNewVehicle(true)
+                        setSelectedVehicleId(null)
+                      } else {
+                        setSelectedVehicleId(val ? Number(val) : null)
+                      }
+                    }}
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full md:w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Sin vehículo</option>
+                    {selectedClient.vehicles?.map(v => (
+                      <option key={v.id} value={v.id}>
+                        {v.brand} {v.model}{v.year ? ` (${v.year})` : ''}{v.plate ? ` · ${v.plate}` : ''}
+                      </option>
+                    ))}
+                    <option value="new">+ Agregar nuevo vehículo</option>
+                  </select>
+                )}
+              </div>
+            )}
 
             {SECTIONS.map(section => {
               const catProducts = products.filter(p => p.category === section.key)
@@ -224,17 +442,17 @@ function QuotesPage() {
                       ).slice(0, 8)
                       return (
                         <div key={row.id} className="flex flex-wrap md:flex-nowrap gap-2 items-center">
-                          <div className="relative w-full md:flex-1">
+                          <div className="relative w-full md:w-40 shrink-0">
                             <input
                               value={row.search}
                               onChange={e => handleSearchChange(section.key, row.id, e.target.value)}
                               onFocus={() => setActiveDropdown(dropKey)}
                               onBlur={() => setTimeout(() => setActiveDropdown(null), 150)}
-                              placeholder={`Buscar en ${section.label}…`}
+                              placeholder={`Buscar…`}
                               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             {activeDropdown === dropKey && filtered.length > 0 && (
-                              <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-44 overflow-auto">
+                              <div className="absolute top-full left-0 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-44 overflow-auto">
                                 {filtered.map(p => (
                                   <div
                                     key={p.id}
@@ -247,6 +465,12 @@ function QuotesPage() {
                               </div>
                             )}
                           </div>
+                          <input
+                            value={row.description}
+                            onChange={e => updateRow(section.key, row.id, { description: e.target.value })}
+                            placeholder="Descripción"
+                            className="w-full md:flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
                           <input
                             type="number"
                             min="1"
@@ -311,6 +535,7 @@ function QuotesPage() {
             <tr className="bg-gray-50 border-b border-gray-200">
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">#</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Vehículo</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Items</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
@@ -326,6 +551,9 @@ function QuotesPage() {
               >
                 <td className="px-6 py-4 text-gray-400 font-mono">#{quote.id}</td>
                 <td className="px-6 py-4 font-medium text-gray-800">{quote.client.name}</td>
+                <td className="px-6 py-4 text-gray-500">
+                  {quote.vehicle ? `${quote.vehicle.brand} ${quote.vehicle.model}` : '—'}
+                </td>
                 <td className="px-6 py-4 text-gray-500">{quote.items.length} items</td>
                 <td className="px-6 py-4 font-semibold text-gray-800">Gs. {Number(quote.total).toLocaleString()}</td>
                 <td className="px-6 py-4">
@@ -364,7 +592,10 @@ function QuotesPage() {
                 {quote.status}
               </span>
             </div>
-            <h3 className="font-semibold text-gray-800 mb-1">{quote.client.name}</h3>
+            <h3 className="font-semibold text-gray-800 mb-0.5">{quote.client.name}</h3>
+            {quote.vehicle && (
+              <p className="text-gray-500 text-xs mb-1">{quote.vehicle.brand} {quote.vehicle.model}</p>
+            )}
             <div className="flex items-center justify-between">
               <p className="text-gray-500 text-sm">{quote.items.length} items · {new Date(quote.createdAt).toLocaleDateString()}</p>
               <p className="font-bold text-gray-800">Gs. {Number(quote.total).toLocaleString()}</p>
@@ -387,11 +618,23 @@ function QuotesPage() {
 
             <div className="flex-1 p-6 overflow-auto space-y-5">
               <div>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Cliente</p>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Cliente</p>
                 <p className="text-gray-800 font-semibold">{selected.client.name}</p>
                 {selected.client.phone && <p className="text-gray-500 text-sm mt-0.5">{selected.client.phone}</p>}
                 {selected.client.email && <p className="text-gray-500 text-sm">{selected.client.email}</p>}
               </div>
+
+              {selected.vehicle && (
+                <div>
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Vehículo</p>
+                  <p className="text-gray-800 font-semibold">
+                    {selected.vehicle.brand} {selected.vehicle.model}{selected.vehicle.year ? ` (${selected.vehicle.year})` : ''}
+                  </p>
+                  {selected.vehicle.plate && (
+                    <p className="text-gray-500 text-sm mt-0.5">Chapa: {selected.vehicle.plate}</p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Estado</p>
@@ -406,14 +649,19 @@ function QuotesPage() {
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">{section.label}</p>
                     <div className="space-y-1.5">
                       {sItems.map(item => (
-                        <div key={item.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
-                          <span className="text-gray-700 flex-1 mr-2">{item.product.name}</span>
-                          <span className="text-gray-400 text-xs mr-3 shrink-0">
-                            x{item.quantity} · Gs. {Number(item.unitPrice).toLocaleString()}
-                          </span>
-                          <span className="font-medium text-gray-800 shrink-0">
-                            Gs. {(item.unitPrice * item.quantity).toLocaleString()}
-                          </span>
+                        <div key={item.id} className="bg-gray-50 rounded-lg px-3 py-2 text-sm">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-gray-700 font-medium">{item.product.name}</p>
+                              {item.description && (
+                                <p className="text-gray-500 text-xs mt-0.5">{item.description}</p>
+                              )}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-gray-400 text-xs">x{item.quantity} · Gs. {Number(item.unitPrice).toLocaleString()}</p>
+                              <p className="font-medium text-gray-800">Gs. {(item.unitPrice * item.quantity).toLocaleString()}</p>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>

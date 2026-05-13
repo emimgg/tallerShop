@@ -15,7 +15,7 @@ function ServiciosPage() {
   const [activeTab, setActiveTab] = useState('servicio')
   const [showForm, setShowForm] = useState(false)
   const [selected, setSelected] = useState(null)
-  const [form, setForm] = useState({ name: '', description: '', price: '', stock: '', category: 'servicio' })
+  const [form, setForm] = useState({ name: '', description: '', price: '', category: 'servicio' })
   const { addToast } = useToast()
 
   useEffect(() => { fetchProducts() }, [])
@@ -35,7 +35,7 @@ function ServiciosPage() {
     setActiveTab(tab)
     setShowForm(false)
     setSelected(null)
-    setForm({ name: '', description: '', price: '', stock: '', category: tab })
+    setForm({ name: '', description: '', price: '', category: tab })
   }
 
   async function handleSubmit(e) {
@@ -45,10 +45,10 @@ function ServiciosPage() {
         name: form.name,
         description: form.description,
         price: Number(form.price),
-        stock: Number(form.stock),
+        stock: 0,
         category: form.category,
       })
-      setForm({ name: '', description: '', price: '', stock: '', category: activeTab })
+      setForm({ name: '', description: '', price: '', category: activeTab })
       setShowForm(false)
       fetchProducts()
       addToast('Item creado correctamente')
@@ -63,7 +63,6 @@ function ServiciosPage() {
         name: data.name,
         description: data.description,
         price: Number(data.price),
-        stock: Number(data.stock),
       })
       const res = await getProducts()
       setProducts(res.data)
@@ -101,7 +100,7 @@ function ServiciosPage() {
         <button
           onClick={() => {
             setShowForm(!showForm)
-            setForm({ name: '', description: '', price: '', stock: '', category: activeTab })
+            setForm({ name: '', description: '', price: '', category: activeTab })
           }}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
         >
@@ -150,14 +149,6 @@ function ServiciosPage() {
               required
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <input
-              placeholder="Stock"
-              type="number"
-              value={form.stock}
-              onChange={e => setForm({ ...form, stock: e.target.value })}
-              required
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
           </div>
           <button
             type="submit"
@@ -175,7 +166,6 @@ function ServiciosPage() {
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nombre</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Descripcion</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Precio</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Stock</th>
             </tr>
           </thead>
           <tbody>
@@ -187,14 +177,7 @@ function ServiciosPage() {
               >
                 <td className="px-6 py-4 font-medium text-gray-800">{product.name}</td>
                 <td className="px-6 py-4 text-gray-500">{product.description || '—'}</td>
-                <td className="px-6 py-4 text-gray-800">Gs. {product.price}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    product.stock < 5 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                  }`}>
-                    {product.stock}
-                  </span>
-                </td>
+                <td className="px-6 py-4 text-gray-800">Gs. {product.price.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
@@ -211,16 +194,9 @@ function ServiciosPage() {
             onClick={() => setSelected(product)}
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:border-blue-300 transition-colors"
           >
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-gray-800">{product.name}</h3>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                product.stock < 5 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-              }`}>
-                {product.stock}
-              </span>
-            </div>
+            <h3 className="font-semibold text-gray-800 mb-1">{product.name}</h3>
             <p className="text-gray-500 text-sm">{product.description || '—'}</p>
-            <p className="text-gray-800 font-medium mt-1">Gs. {product.price}</p>
+            <p className="text-gray-800 font-medium mt-1">Gs. {product.price.toLocaleString()}</p>
           </div>
         ))}
         {filtered.length === 0 && (
@@ -237,15 +213,13 @@ function ServiciosPage() {
         fields={[
           { key: 'name', label: 'Nombre' },
           { key: 'description', label: 'Descripcion' },
-          { key: 'price', label: 'Precio', format: v => `Gs. ${v}` },
-          { key: 'stock', label: 'Stock', format: v => `${v} unidades` },
+          { key: 'price', label: 'Precio', format: v => `Gs. ${Number(v).toLocaleString()}` },
           { key: 'createdAt', label: 'Creado', format: v => new Date(v).toLocaleDateString() },
         ]}
         editableFields={[
           { key: 'name', label: 'Nombre', type: 'text', required: true },
           { key: 'description', label: 'Descripcion', type: 'text' },
           { key: 'price', label: 'Precio', type: 'number', required: true },
-          { key: 'stock', label: 'Stock', type: 'number', required: true },
         ]}
       />
     </div>

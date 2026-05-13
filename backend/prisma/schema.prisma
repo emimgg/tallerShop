@@ -18,13 +18,26 @@ model User {
 }
 
 model Client {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
   phone     String?
   email     String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   userId    Int?
-  user      User?    @relation(fields: [userId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+  quotes    Quote[]
+  vehicles  Vehicle[]
+}
+
+model Vehicle {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  client    Client   @relation(fields: [clientId], references: [id])
+  brand     String
+  model     String
+  year      Int?
+  plate     String?
+  createdAt DateTime @default(now())
   quotes    Quote[]
 }
 
@@ -45,6 +58,8 @@ model Quote {
   clientId   Int
   userId     Int?
   user       User?       @relation(fields: [userId], references: [id])
+  vehicleId  Int?
+  vehicle    Vehicle?    @relation(fields: [vehicleId], references: [id])
   status     String      @default("pendiente")
   total      Float       @default(0)
   createdAt  DateTime    @default(now())
@@ -52,11 +67,12 @@ model Quote {
 }
 
 model QuoteItem {
-  id        Int     @id @default(autoincrement())
-  quote     Quote   @relation(fields: [quoteId], references: [id])
-  quoteId   Int
-  product   Product @relation(fields: [productId], references: [id])
-  productId Int
-  quantity  Int
-  unitPrice Float
+  id          Int     @id @default(autoincrement())
+  quote       Quote   @relation(fields: [quoteId], references: [id])
+  quoteId     Int
+  product     Product @relation(fields: [productId], references: [id])
+  productId   Int
+  quantity    Int
+  unitPrice   Float
+  description String?
 }
