@@ -238,7 +238,9 @@ function QuotesPage() {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
     doc.setTextColor(80)
-    doc.text(new Date(quote.createdAt).toLocaleDateString(), ml, y)
+    const d = new Date(quote.createdAt)
+    const dateStr = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
+    doc.text(dateStr, ml, y)
     y += 10
 
     doc.setFont('helvetica', 'bold')
@@ -278,11 +280,22 @@ function QuotesPage() {
       doc.setTextColor(20)
       for (const item of section.items) {
         if (y > 270) { doc.addPage(); y = 20 }
-        const leftPart = item.description
-          ? `${item.product.name} - ${item.description}`
-          : item.product.name
-        const displayLeft = leftPart.length > 52 ? leftPart.slice(0, 52) + '…' : leftPart
-        doc.text(displayLeft, ml, y)
+        const nameText = item.product.name.length > 30 ? item.product.name.slice(0, 30) + '…' : item.product.name
+        doc.setTextColor(20)
+        doc.text(nameText, ml, y)
+        if (item.description) {
+          const nameW = doc.getTextWidth(nameText)
+          const descX = ml + nameW + 1.5
+          const maxDescW = 112 - descX
+          if (maxDescW > 4) {
+            let desc = item.description
+            while (doc.getTextWidth(desc) > maxDescW && desc.length > 1) desc = desc.slice(0, -1)
+            if (desc.length < item.description.length) desc = desc.slice(0, -1) + '…'
+            doc.setTextColor(140)
+            doc.text(desc, descX, y)
+            doc.setTextColor(20)
+          }
+        }
         doc.text(`${item.quantity} x Gs. ${Number(item.unitPrice).toLocaleString()}`, 120, y)
         doc.text(`Gs. ${(item.unitPrice * item.quantity).toLocaleString()}`, mr, y, { align: 'right' })
         y += 6
