@@ -284,27 +284,23 @@ function QuotesPage() {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
       doc.setTextColor(20)
+      const colW = 90
+      const lineH = 5
       for (const item of section.items) {
-        if (y > 270) { doc.addPage(); y = 20 }
-        const nameText = item.product.name.length > 30 ? item.product.name.slice(0, 30) + '…' : item.product.name
+        const nameLines = doc.splitTextToSize(item.product.name, colW)
+        const descLines = item.description ? doc.splitTextToSize(item.description, colW) : []
+        const rowH = (nameLines.length + descLines.length) * lineH
+        if (y + rowH > 270) { doc.addPage(); y = 20 }
         doc.setTextColor(20)
-        doc.text(nameText, ml, y)
-        if (item.description) {
-          const nameW = doc.getTextWidth(nameText)
-          const descX = ml + nameW + 1.5
-          const maxDescW = 112 - descX
-          if (maxDescW > 4) {
-            let desc = item.description
-            while (doc.getTextWidth(desc) > maxDescW && desc.length > 1) desc = desc.slice(0, -1)
-            if (desc.length < item.description.length) desc = desc.slice(0, -1) + '…'
-            doc.setTextColor(140)
-            doc.text(desc, descX, y)
-            doc.setTextColor(20)
-          }
+        nameLines.forEach((line, i) => doc.text(line, ml, y + i * lineH))
+        if (descLines.length > 0) {
+          doc.setTextColor(140)
+          descLines.forEach((line, i) => doc.text(line, ml, y + (nameLines.length + i) * lineH))
+          doc.setTextColor(20)
         }
         doc.text(`${item.quantity} x Gs. ${Number(item.unitPrice).toLocaleString()}`, 120, y)
         doc.text(`Gs. ${(item.unitPrice * item.quantity).toLocaleString()}`, mr, y, { align: 'right' })
-        y += 6
+        y += rowH + 2
       }
       y += 5
     }
